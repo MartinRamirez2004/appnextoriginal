@@ -8,7 +8,7 @@ interface Publicacion {
   descripcion: string | null;
   imagen_url: string;
   fecha_publicacion: string;
-  usuarios: { usuario: string } | null;
+  usuarios: { usuario: string }[] | null; // Array en lugar de objeto único
   likes: { id_like: string }[] | null;
 }
 
@@ -38,11 +38,8 @@ export default function Feed() {
     return;
   }
 
-  // Forzamos el tipo al resultado
-  setPublicaciones((data as Publicacion[]) ?? []);
+  setPublicaciones(data ?? []);
 }
-
-
 
   return (
     <div className="p-4 space-y-6">
@@ -63,7 +60,7 @@ export default function Feed() {
             )}
             <p className="text-xs text-gray-500">{new Date(post.fecha_publicacion).toLocaleDateString()}</p>
             <p className="text-sm text-gray-800">{Array.isArray(post.likes) ? post.likes.length : 0} likes</p>
-            <p className="text-xs text-blue-600">{post.usuarios?.usuario || 'Usuario desconocido'}</p>
+            <p className="text-xs text-blue-600">{post.usuarios && post.usuarios[0]?.usuario || 'Usuario desconocido'}</p>
           </div>
         ))
       )}
