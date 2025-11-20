@@ -1,3 +1,4 @@
+// app/layout.tsx (público)
 import "./globals.css";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

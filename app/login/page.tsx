@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const [loginInput, setLoginInput] = useState(""); // campo único (correo o usuario)
+  const [loginInput, setLoginInput] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const router = useRouter();
@@ -14,7 +14,6 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // 1️⃣ Validaciones previas
     if (!loginInput || !password) {
       setMessage("⚠ Todos los campos son obligatorios.");
       return;
@@ -22,7 +21,6 @@ export default function LoginPage() {
 
     let emailToLogin = loginInput;
 
-    // 2️⃣ Si no contiene @, asumimos que es usuario y buscamos el correo
     if (!loginInput.includes("@")) {
       const { data: users, error: fetchError } = await supabase
         .from("usuarios")
@@ -35,21 +33,16 @@ export default function LoginPage() {
         return;
       }
 
-      emailToLogin = users.correo; // usamos el correo real para Supabase Auth
+      emailToLogin = users.correo;
     }
 
-    // 3️⃣ Iniciar sesión con Supabase Auth
     const { error } = await supabase.auth.signInWithPassword({
       email: emailToLogin,
       password,
     });
 
     if (error) {
-      if (error.message.includes("Invalid login credentials")) {
-        setMessage("❌ Usuario o contraseña incorrectos.");
-      } else {
-        setMessage("❌ Error: " + error.message);
-      }
+      setMessage("❌ Usuario o contraseña incorrectos.");
       return;
     }
 
@@ -57,32 +50,46 @@ export default function LoginPage() {
   };
 
   return (
-    <div>
-      <h1>Iniciar Sesión</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+      <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-sm">
+        <h1 className="text-2xl font-bold text-center mb-5">Iniciar Sesión</h1>
 
-      <form onSubmit={handleLogin}>
-        <input
-          type="text"
-          placeholder="Correo o Usuario"
-          value={loginInput}
-          onChange={(e) => setLoginInput(e.target.value)}
-        />
+        <form onSubmit={handleLogin} className="space-y-4">
+          <input
+            type="text"
+            placeholder="Correo o Usuario"
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            value={loginInput}
+            onChange={(e) => setLoginInput(e.target.value)}
+          />
 
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <input
+            type="password"
+            placeholder="Contraseña"
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-        <button type="submit">Ingresar</button>
-      </form>
+          <button
+            type="submit"
+            className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+          >
+            Ingresar
+          </button>
+        </form>
 
-      {message && <p>{message}</p>}
+        {message && (
+          <p className="mt-4 text-center text-red-500 text-sm">{message}</p>
+        )}
 
-      <Link href="/registro" className="text-blue-600 underline mt-4 block">
-        ¿No tienes una cuenta? Crear cuenta
-      </Link>
+        <Link
+          href="/registro"
+          className="text-blue-600 text-center mt-4 block underline"
+        >
+          ¿No tienes una cuenta? Crear cuenta
+        </Link>
+      </div>
     </div>
   );
 }

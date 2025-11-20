@@ -13,24 +13,21 @@ export default function RegisterPage() {
   const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); 
+    e.preventDefault();
 
-    // 1️. Validaciones previas
     if (!usuario || !email || !password) {
       setMessage("⚠ Todos los campos son obligatorios.");
       return;
     }
 
-    const username = usuario.trim();
     const usernameRegex = /^[a-zA-Z0-9]{5,20}$/;
-
-    if (!usernameRegex.test(username)) {
-      setMessage("El usuario debe tener entre 5 y 20 caracteres, sin espacios y solo con letras o números.");
-    return;
+    if (!usernameRegex.test(usuario.trim())) {
+      setMessage("El usuario debe tener entre 5 y 20 caracteres y sin espacios.");
+      return;
     }
 
     if (!email.includes("@")) {
-      setMessage("Por favor ingresa un correo válido.");
+      setMessage("Correo inválido.");
       return;
     }
 
@@ -39,10 +36,9 @@ export default function RegisterPage() {
       return;
     }
 
-    // 2️. Registrar con Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: email,
-      password: password,
+    const { error: authError } = await supabase.auth.signUp({
+      email,
+      password,
     });
 
     if (authError) {
@@ -50,60 +46,69 @@ export default function RegisterPage() {
       return;
     }
 
-    // 3️. Guardar datos en tu tabla personalizada
-    const { error: insertError } = await supabase
-      .from("usuarios")
-      .insert([
-        {
-          usuario: usuario,
-          correo: email,
-          contraseña: password,
-        },
-      ]);
+    const { error: insertError } = await supabase.from("usuarios").insert([
+      {
+        usuario,
+        correo: email,
+        contraseña: password,
+      },
+    ]);
 
     if (insertError) {
       setMessage("❌ Error guardando datos: " + insertError.message);
       return;
     }
 
-    setMessage("✔ Registro exitoso. Revisa tu correo.");
     router.push("/login");
   };
 
   return (
-    <div>
-      <h1>Registro</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6">
+      <div className="bg-white p-6 rounded-xl shadow-md w-full max-w-sm">
+        <h1 className="text-2xl font-bold text-center mb-5">Registro</h1>
 
-      <form onSubmit={handleRegister}>
-        <input
-          type="text"
-          placeholder="Usuario"
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
-        />
+        <form onSubmit={handleRegister} className="space-y-4">
+          <input
+            type="text"
+            placeholder="Usuario"
+            className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:ring-2 outline-none"
+            value={usuario}
+            onChange={(e) => setUsuario(e.target.value)}
+          />
 
-        <input
-          type="email"
-          placeholder="Correo"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+          <input
+            type="email"
+            placeholder="Correo"
+            className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:ring-2 outline-none"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <input
+            type="password"
+            placeholder="Contraseña"
+            className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:ring-2 outline-none"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-        <button type="submit">Registrarme</button>
-      </form>
+          <button
+            type="submit"
+            className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+          >
+            Registrarme
+          </button>
+        </form>
 
-      {message && <p>{message}</p>}
+        {message && <p className="mt-4 text-center text-red-500">{message}</p>}
 
-      <Link href="/login" className="text-blue-600 underline mt-4 block">
-        Volver a Inicio Sesion
-      </Link>
+        <Link
+          href="/login"
+          className="text-blue-600 text-center mt-4 block underline"
+        >
+          Volver a Inicio Sesión
+        </Link>
+      </div>
     </div>
   );
 }
