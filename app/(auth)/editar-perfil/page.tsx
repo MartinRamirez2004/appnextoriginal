@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
 
 export default function EditarPerfil() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -11,14 +12,12 @@ export default function EditarPerfil() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
+  
+  const router = useRouter();
 
-  // ---------------------------
-  //   CARGAR DATOS DEL USUARIO
-  // ---------------------------
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        // Obtener usuario autenticado
         const { data: { user }, error: authError } = await supabase.auth.getUser();
 
         if (authError || !user) {
@@ -28,12 +27,11 @@ export default function EditarPerfil() {
 
         setUserId(user.id);
 
-        // Buscar perfil en la tabla usuarios
         const { data, error } = await supabase
           .from("usuarios")
           .select("usuario, bio, foto_perfil")
           .eq("id_usuario", user.id)
-          .maybeSingle(); // Usar maybeSingle() en lugar de single()
+          .maybeSingle();
 
         if (error) {
           console.error("Error al cargar perfil:", error);
@@ -46,7 +44,6 @@ export default function EditarPerfil() {
           setBio(data.bio || "");
           setAvatarUrl(data.foto_perfil || null);
         } else {
-          // Si no existe el perfil, crear uno
           const { error: insertError } = await supabase
             .from("usuarios")
             .insert({
@@ -69,9 +66,6 @@ export default function EditarPerfil() {
     loadProfile();
   }, []);
 
-  // ---------------------------
-  //   SUBIR FOTO DE PERFIL
-  // ---------------------------
   const handleAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -85,13 +79,11 @@ export default function EditarPerfil() {
         return;
       }
 
-      // Validar tipo de archivo
       if (!file.type.startsWith("image/")) {
         setMessage("Solo se permiten imágenes");
         return;
       }
 
-      // Validar tamaño (máx 15MB)
       if (file.size > 15 * 1024 * 1024) {
         setMessage("La imagen es muy grande (máx 15MB)");
         return;
@@ -99,7 +91,6 @@ export default function EditarPerfil() {
 
       const fileName = `${userId}/${Date.now()}-${file.name}`;
 
-      // Subir archivo
       const { error: uploadError } = await supabase.storage
         .from("imagenes_perfil")
         .upload(fileName, file, { 
@@ -112,13 +103,12 @@ export default function EditarPerfil() {
         throw uploadError;
       }
 
-      // Obtener URL pública
       const { data: publicUrlData } = supabase.storage
         .from("imagenes_perfil")
         .getPublicUrl(fileName);
 
       setAvatarUrl(publicUrlData.publicUrl);
-      setMessage("Foto actualizada ✨");
+      setMessage("✨ Foto actualizada correctamente");
     } catch (error) {
       console.error(error);
       setMessage("Error al subir la foto");
@@ -127,9 +117,6 @@ export default function EditarPerfil() {
     }
   };
 
-  // ---------------------------
-  //    GUARDAR CAMBIOS
-  // ---------------------------
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -140,7 +127,6 @@ export default function EditarPerfil() {
         return;
       }
 
-      // Validaciones
       if (!usuario.trim()) {
         setMessage("El nombre de usuario es requerido");
         return;
@@ -151,7 +137,6 @@ export default function EditarPerfil() {
         return;
       }
 
-      // Actualizar perfil
       const { error } = await supabase
         .from("usuarios")
         .update({
@@ -164,7 +149,6 @@ export default function EditarPerfil() {
       if (error) {
         console.error("Error al actualizar:", error);
         
-        // Manejar errores específicos
         if (error.code === "23505") {
           setMessage("Ese nombre de usuario ya está en uso");
         } else {
@@ -173,10 +157,11 @@ export default function EditarPerfil() {
         return;
       }
 
-      setMessage("Cambios guardados ✔️");
+      setMessage("✅ Cambios guardados exitosamente");
       
-      // Limpiar mensaje después de 3 segundos
-      setTimeout(() => setMessage(""), 3000);
+      setTimeout(() => {
+        router.push("/perfil");
+      }, 1500);
     } catch (error) {
       console.error(error);
       setMessage("Error inesperado al guardar");
@@ -185,92 +170,160 @@ export default function EditarPerfil() {
     }
   };
 
-  // ---------------------------
-  //     UI
-  // ---------------------------
   return (
-    <div className="max-w-md mx-auto p-4 flex flex-col gap-6">
-      {/* Foto */}
-      <div className="flex flex-col items-center gap-3">
-        <div className="relative w-28 h-28 rounded-full overflow-hidden border-2 border-gray-300">
-          {avatarUrl ? (
-            <Image 
-              src={avatarUrl} 
-              alt="avatar" 
-              fill 
-              className="object-cover"
-              unoptimized // Añadir si tienes problemas con imágenes de Supabase
-            />
-          ) : (
-            <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500">
-              Sin foto
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto">
+        
+        {/* Header */}
+        <div className="text-center mb-8">
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Volver
+          </button>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">
+            Editar Perfil
+          </h1>
+          <p className="text-gray-600">Personaliza tu información</p>
+        </div>
+
+        {/* Formulario */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sm:p-8">
+          
+          {/* Foto de perfil */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="relative group mb-4">
+              <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gradient-to-br from-blue-400 to-purple-500">
+                {avatarUrl ? (
+                  <Image 
+                    src={avatarUrl} 
+                    alt="avatar" 
+                    fill 
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white text-4xl font-bold">
+                    {usuario ? usuario[0].toUpperCase() : "?"}
+                  </div>
+                )}
+              </div>
+              
+              {/* Overlay */}
+              <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+            </div>
+
+            <label className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 cursor-pointer font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-50">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              {loading ? "Subiendo..." : "Cambiar foto"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatar}
+                disabled={loading}
+              />
+            </label>
+            <p className="text-xs text-gray-500 mt-2">PNG, JPG o GIF (máx. 15MB)</p>
+          </div>
+
+          {/* Campos del formulario */}
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Nombre de usuario
+              </label>
+              <input
+                type="text"
+                value={usuario}
+                onChange={(e) => setUsuario(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm sm:text-base"
+                placeholder="tu_usuario"
+                disabled={loading}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Mínimo 3 caracteres
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Biografía
+              </label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none text-sm sm:text-base"
+                placeholder="Cuéntanos algo sobre ti..."
+                disabled={loading}
+                maxLength={200}
+                rows={4}
+              />
+              <div className="flex justify-between items-center mt-1">
+                <p className="text-xs text-gray-500">
+                  Comparte un poco sobre ti
+                </p>
+                <p className="text-xs text-gray-500">
+                  {bio.length}/200
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Botones de acción */}
+          <div className="mt-8 space-y-3">
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Guardar cambios
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => router.back()}
+              disabled={loading}
+              className="w-full py-3.5 bg-white border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-semibold disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+          </div>
+
+          {/* Mensaje de estado */}
+          {message && (
+            <div className={`mt-6 p-4 rounded-xl text-center font-medium ${
+              message.includes("✅") || message.includes("✨")
+                ? "bg-green-50 text-green-700 border border-green-200"
+                : "bg-red-50 text-red-700 border border-red-200"
+            }`}>
+              {message}
             </div>
           )}
         </div>
-
-        <label className="text-blue-600 font-medium cursor-pointer hover:text-blue-700">
-          Cambiar foto
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleAvatar}
-            disabled={loading}
-          />
-        </label>
       </div>
-
-      {/* Formulario */}
-      <div className="flex flex-col gap-4">
-        <div>
-          <label className="block text-gray-700 mb-1 font-medium">
-            Nombre de usuario
-          </label>
-          <input
-            type="text"
-            value={usuario}
-            onChange={(e) => setUsuario(e.target.value)}
-            className="w-full border rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="tu_usuario"
-            disabled={loading}
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-700 mb-1 font-medium">
-            Biografía
-          </label>
-          <textarea
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            className="w-full border rounded-lg p-2 h-24 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-            placeholder="Cuéntanos algo sobre ti..."
-            disabled={loading}
-            maxLength={200}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            {bio.length}/200 caracteres
-          </p>
-        </div>
-      </div>
-
-      <button
-        onClick={handleSave}
-        disabled={loading}
-        className="bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
-      >
-        {loading ? "Guardando..." : "Guardar cambios"}
-      </button>
-
-      {message && (
-        <p className={`text-center text-sm ${
-          message.includes("✔️") || message.includes("✨") 
-            ? "text-green-600" 
-            : "text-red-600"
-        }`}>
-          {message}
-        </p>
-      )}
     </div>
   );
 }
